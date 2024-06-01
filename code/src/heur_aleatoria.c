@@ -135,12 +135,12 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    int found, infeasible, nInSolution;
    unsigned int stored;
    int nvars;
-   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations;
+   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations, tempViolations; /* new */
    SCIP_VAR *var, **solution, **varlist;
    //  SCIP* scip_cp;
    SCIP_Real bestUb;
    SCIP_PROBDATA* probdata;
-   int i, residual, j, peso, nS, ii;
+   int i, residual, j, peso, nS, ii, k; /* new */
    instanceT* I;
    
    found = 0;
@@ -169,7 +169,8 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    nCands = 0;
    custo = 0;
    residual = I->C;
-   violations = 0;
+   violations = 0, tempViolations = 0; /* new */
+   k = I->k; /* new */
 
    // first, select all variables already fixed in 1.0
    for(i=0;i<nvars;i++){
@@ -184,6 +185,9 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
           for(j=0;j<I->item[i].nsets;j++){
              ii = I->item[i].set[j];
              forfeit[ii]++; // update total of items selected from the forfeit set
+
+             if(forfeit[ii] > I->S[ii].h){ //atualizar violations -> new <-
+               violations+=1;
           }
           // update solution value
           custo += I->item[i].value;
@@ -210,6 +214,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    }
    // complete solution using items not fixed (not covered)
    for(i=0;i<n && !infeasible && nCands > 0 && residual>0;i++){
+      tempViolations = violations;
       s = RandomInteger (0, nCands-1);
       selected = cand[s]; // selected candidate
       cand[s] = cand[--nCands]; // remove selected candidate
@@ -222,10 +227,11 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
             // update the value if the item will exceed the maximum allowed for the set
             if(forfeit[ii] >= I->S[ii].h){
                valor -= I->S[ii].d;
+               tempViolations += 1; /* new */
             }
          }
          // if it worths
-         if(valor>0){
+         if(valor>0 && tempViolations<=k){ /* new and doesnt break k*/
             var = varlist[selected];
             // include selected var in the solution
             solution[nInSolution++]=var;
@@ -240,6 +246,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
                ii = I->item[selected].set[j];
                forfeit[ii]++;
             }
+            violations = tempViolations; /* new */
             infeasible = residual<0?1:0;
 #ifdef DEBUG_ALEATORIA
             printf("\n\nSelected var= %s. TotalItems=%d value item=%d value = %d residual=%d violations=%d infeasible=%d\n", SCIPvarGetName(var), nInSolution, valor, custo, residual, violations, infeasible);
