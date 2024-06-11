@@ -140,7 +140,7 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
    SCIP_Real valor;
    SCIP_PROBDATA* probdata, *probdata2;
    SCIP_SOL *lnsSol, *sol;
-   int i, ii;
+   int i, ii, tobeViolated, violations;
    instanceT* I;
    double z, lnsZ, bestUb;
    int *fixed;

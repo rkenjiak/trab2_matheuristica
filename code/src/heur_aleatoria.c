@@ -135,12 +135,12 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    int found, infeasible, nInSolution;
    unsigned int stored;
    int nvars;
-   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations, tempViolations; /* new */
+   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations;
    SCIP_VAR *var, **solution, **varlist;
    //  SCIP* scip_cp;
    SCIP_Real bestUb;
    SCIP_PROBDATA* probdata;
-   int i, residual, j, peso, nS, ii, k; /* new */
+   int i, residual, j, peso, nS, ii, toBeViolated;
    instanceT* I;
    
    found = 0;
@@ -169,8 +169,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    nCands = 0;
    custo = 0;
    residual = I->C;
-   violations = 0, tempViolations = 0; /* new */
-   k = I->k; /* new */
+   violations = 0;
 
    // first, select all variables already fixed in 1.0
    for(i=0;i<nvars;i++){
@@ -185,9 +184,6 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
           for(j=0;j<I->item[i].nsets;j++){
              ii = I->item[i].set[j];
              forfeit[ii]++; // update total of items selected from the forfeit set
-
-             if(forfeit[ii] > I->S[ii].h){ //atualizar violations -> new <-
-               violations+=1;
           }
           // update solution value
           custo += I->item[i].value;
@@ -212,26 +208,32 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
         }
       }
    }
+   // update forfeits violated
+   for(i=0;i<nS;i++){
+      if(forfeit[i] > I->S[i].h){
+         violations += forfeit[i] - I->S[i].h;
+      }
+   }
    // complete solution using items not fixed (not covered)
    for(i=0;i<n && !infeasible && nCands > 0 && residual>0;i++){
-      tempViolations = violations;
       s = RandomInteger (0, nCands-1);
       selected = cand[s]; // selected candidate
       cand[s] = cand[--nCands]; // remove selected candidate
       // only accept the item if not covered yet and not exceed the capacity
       if(!covered[selected] && I->item[selected].weight <= residual){
          // compute the real value
+         toBeViolated = 0;
          valor = I->item[selected].value;
          for(j=0;j<I->item[selected].nsets;j++){
             ii = I->item[selected].set[j];
             // update the value if the item will exceed the maximum allowed for the set
             if(forfeit[ii] >= I->S[ii].h){
                valor -= I->S[ii].d;
-               tempViolations += 1; /* new */
+               toBeViolated++;
             }
          }
          // if it worths
-         if(valor>0 && tempViolations<=k){ /* new and doesnt break k*/
+         if(valor>0 && toBeViolated+violations <= I->k){
             var = varlist[selected];
             // include selected var in the solution
             solution[nInSolution++]=var;
@@ -246,10 +248,10 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
                ii = I->item[selected].set[j];
                forfeit[ii]++;
             }
-            violations = tempViolations; /* new */
             infeasible = residual<0?1:0;
+            violations += toBeViolated;
 #ifdef DEBUG_ALEATORIA
-            printf("\n\nSelected var= %s. TotalItems=%d value item=%d value = %d residual=%d violations=%d infeasible=%d\n", SCIPvarGetName(var), nInSolution, valor, custo, residual, violations, infeasible);
+            printf("\n\nSelected var= %s. TotalItems=%d value item=%d toBeViolated=%d value = %d residual=%d violations=%d infeasible=%d\n", SCIPvarGetName(var), nInSolution, valor, toBeViolated, custo, residual, violations, infeasible);
 #endif
          }
          else{
@@ -270,7 +272,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
       }
       // update forfeit set variable
       for(j=0;j<nS;j++){
-         valor = forfeit[j]>I->S[j].h? forfeit[j] - I->S[j].h:0;
+         valor = forfeit[j]>I->S[j].h?forfeit[j]-I->S[j].h:0;
          SCIP_CALL( SCIPsetSolVal(scip, *sol, varlist[I->n+j], (double) valor) );
       }
       bestUb = SCIPgetPrimalbound(scip);
