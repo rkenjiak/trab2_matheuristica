@@ -454,18 +454,40 @@ int RandomInteger(int low, int high)
 // Função auxiliar de comparacao para o qsort
 int comparador(const void *valor1, const void *valor2)
 {
-  if ((*(itemType *)valor1).value > (*(itemType *)valor2).value)
+  int k=4; // trocar k para testar diferentes sorts value, weight
+  switch (k)
   {
-    return 1;
-  }
-  else if ((*(itemType *)valor1).value == (*(itemType *)valor2).value)
-  {
-    return 0;
-  }
-  else
-  {
-    return -1;
-  }
+    case 0:
+      if ((*(itemType *)valor1).value > (*(itemType *)valor2).value) return 1;
+      else if ((*(itemType *)valor1).value == (*(itemType *)valor2).value) return 0;
+      else return -1;
+      break;
+    case 1:
+      if ((*(itemType *)valor1).value < (*(itemType *)valor2).value) return 1;
+      else if ((*(itemType *)valor1).value == (*(itemType *)valor2).value) return 0;
+      else return -1;
+      break;
+    case 2:
+      if ((*(itemType *)valor1).weight > (*(itemType *)valor2).weight) return 1;
+      else if ((*(itemType *)valor1).weight == (*(itemType *)valor2).weight) return 0;
+      else return -1;
+      break;
+    case 3: // tira maior peso
+      if ((*(itemType *)valor1).weight < (*(itemType *)valor2).weight) return 1;
+      else if ((*(itemType *)valor1).weight == (*(itemType *)valor2).weight) return 0;
+      else return -1;
+      break; 
+    case 4:
+      if ((float)((*(itemType *)valor1).value)/((*(itemType *)valor1).weight) > ((float)(*(itemType *)valor2).value)/(*(itemType *)valor2).weight) return 1;
+      else if ((float)((*(itemType *)valor1).value)/((*(itemType *)valor1).weight) == ((float)(*(itemType *)valor2).value)/(*(itemType *)valor2).weight) return 0;
+      else return -1;
+      break;
+    case 5:
+      if ((float)((*(itemType *)valor1).value)/((*(itemType *)valor1).weight) < ((float)(*(itemType *)valor2).value)/(*(itemType *)valor2).weight) return 1;
+      else if ((float)((*(itemType *)valor1).value)/((*(itemType *)valor1).weight) == ((float)(*(itemType *)valor2).value)/(*(itemType *)valor2).weight) return 0;
+      else return -1;
+      break; 
+  }  
 }
 
 
