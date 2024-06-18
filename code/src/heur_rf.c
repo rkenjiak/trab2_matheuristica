@@ -205,7 +205,7 @@ int rf(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
       }
    }
 
-   //  qsort(cand, nCand, sizeof(itemType), comparador);
+   //qsort(cand, nCand, sizeof(itemType), comparador);
    
    // define tamanho de cada parte da particao
    tam = ceill(param->rf_perc * I->n);
