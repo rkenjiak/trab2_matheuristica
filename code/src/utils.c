@@ -447,7 +447,7 @@ void printSol(SCIP* scip, char* outputname)
        solval = SCIPgetSolVal(scip, bestSolution, vars[v]);
        if( solval > EPSILON )
 	 {
-	   fprintf(file, "%d ", I->item[v].label);
+	   fprintf(file, "%d ", I->item[v].label+1);
 	 }
      }
 
